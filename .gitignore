@@ -1,0 +1,6 @@
+# environment
+myenv
+.env
+
+# py
+__pycache__
