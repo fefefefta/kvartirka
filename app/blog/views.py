@@ -10,7 +10,7 @@ from .serializers import ArticleSerializer, CommentSerializer
 
 class ArticleList(APIView):
     def get(self, request, format=None):
-        articles = Article.objects.all()
+        articles = Article.get_articles()
         serializer = ArticleSerializer(articles, many=True)
 
         return Response({"articles": serializer.data})
@@ -21,7 +21,7 @@ class ArticleList(APIView):
             serializer.save()
 
             return Response(
-                    {"new_article": serializer.data}, 
+                    {"new_article": serializer.data},
                     status=status.HTTP_201_CREATED
                 )
 
@@ -29,34 +29,30 @@ class ArticleList(APIView):
 
 
 class ArticleDetail(APIView):
-    def get_object(self, article_id):
-        try:
-            return Article.objects.get(pk=article_id)
-        except Article.DoesNotExist:
-            raise Http404
-
     def get(self, request, article_id, format=None):
-        article = self.get_object(article_id)
-        serializer = ArticleSerializer(article)
+        article = Article.get_article_or_404(article_id)
+        article_serializer = ArticleSerializer(article)
 
-        return Response({"article": serializer.data})   
+        comments = article.get_first_comment_levels()
+        comments_serializer = CommentSerializer(comments, many=True)
+
+        return Response(
+                {"article": article_serializer.data, 
+                 "comments": comments_serializer.data}
+            )
 
 
 class CommentList(APIView):
     def get(self, request, article_id, format=None):
-        comments = Comment.objects.filter(article__id=article_id, level__lte=3)
+        comments = Comment.get_comments_by_article_id(article_id)
         serializer = CommentSerializer(comments, many=True)
 
-        return Response({"first_three_comments_levels": serializer.data})
+        return Response({"comments": serializer.data})
 
     def post(self, request, article_id, format=None):
+        # article_id is taken from the request URL
         if request.data.get('article'):
             raise APIException("don't specify article explicitly")
-
-        try:
-            article = Article.objects.get(pk=article_id)
-        except Article.DoesNotExist:
-            raise APIException('no article with this id')
 
         request.data['article'] = article_id
 
@@ -65,7 +61,7 @@ class CommentList(APIView):
             serializer.save()
 
             return Response(
-                    {"new_comment": serializer.data}, 
+                    {"new_comment": serializer.data},
                     status=status.HTTP_201_CREATED
                 )
 
@@ -73,19 +69,15 @@ class CommentList(APIView):
 
 
 class CommentDetail(APIView):
-    def get_object(self, comment_id):
-        try:
-            return Comment.objects.get(pk=comment_id)
-        except Comment.DoesNotExist:
-            raise Http404
-
     def get(self, request, article_id, comment_id, format=None):
-        comment = self.get_object(comment_id)
-        if comment.level != 2:
+        comment = Comment.get_comment_or_404(comment_id, article_id)
+
+        if comment.level != Comment.EDGE_COMMENT_LEVEL:
             serializer = CommentSerializer(comment)
 
             return Response({"comment": serializer.data})
 
+        # Response with comment tree with root in third level comment  
         answers_tree = comment.get_descendants()
         root_serializer = CommentSerializer(comment)
         answers_tree_serializer = CommentSerializer(answers_tree, many=True)
@@ -96,19 +88,12 @@ class CommentDetail(APIView):
             })
 
     def post(self, request, article_id, comment_id, format=None):
-        if request.data.get('article'):
-            raise APIException("don't specify article explicitly")
+        # Theese params are taken from the request URL
+        if request.data.get('article') or request.data.get('answered_to'):
+            raise APIException("don't specify article and parent explicitly")
 
-        if request.data.get('answered_to'):
-            raise APIException("don't specify comment explicitly")
-
-        try:
-            article = Article.objects.get(pk=article_id)
-        except Article.DoesNotExist:
-            raise APIException('no article with this id')
-
-        if not self.get_object(comment_id):
-            raise APIException('no comment with that id')
+        # To check existance of that comment from that article
+        Comment.get_comment_or_404(comment_id, article_id)
 
         request.data['article'] = article_id
         request.data['answered_to'] = comment_id
@@ -118,7 +103,7 @@ class CommentDetail(APIView):
             serializer.save()
 
             return Response(
-                    {"comment": serializer.data}, 
+                    {"comment": serializer.data},
                     status=status.HTTP_201_CREATED
                 )
 
