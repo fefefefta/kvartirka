@@ -20,3 +20,6 @@ class Comment(MPTTModel):
             blank=False,
         )
     text = models.TextField(blank=True)
+
+    class MPTTMeta:
+        parent_attr = 'answered_to'
