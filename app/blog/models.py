@@ -21,15 +21,16 @@ class Article(models.Model):
     def get_first_comment_levels(self):
         """Returns comments below the specified level (3)"""
         return Comment.objects.filter(
-                article=self, 
+                article=self,
                 level__lte=Comment.EDGE_COMMENT_LEVEL
             )
 
 
 class Comment(MPTTModel):
-    # Because mptt counts levels from 0 
+    # Because mptt counts levels from 0
     EDGE_COMMENT_LEVEL = 2
 
+    # Field for more efficient operations on comment trees
     answered_to = TreeForeignKey(
             'self',
             on_delete=models.DO_NOTHING,
@@ -46,7 +47,7 @@ class Comment(MPTTModel):
     class MPTTMeta:
         parent_attr = 'answered_to'
 
-    @classmethod    
+    @classmethod
     def get_comment_or_404(cls, comment_id, article_id):
         try:
             return cls.objects.get(pk=comment_id, article__id=article_id)
