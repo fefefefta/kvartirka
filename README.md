@@ -11,13 +11,25 @@
 > git clone https://github.com/fefefefta/kvartirka
 > cd kvartirka
 ```
-2. запустите докер
+2. добавьте .env файл в каталог kvartirka/app/app
+```
+> nano app/app/.env
+
+SECRET_KEY=django-insecure-zrdr4!uus*pgq0wd%mx(7xlm8b#^y3%ocgbp5w3an_*7gvv^&pwowsosecret
+DEBUG=true
+POSTGRES_DB=kvartirka_postgres
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_HOST=db
+POSTGRES_PORT=5432
+```
+3. запустите докер
 ```
 > docker build .
 > docker-compose build
 > docker-compose up
 ```
-3. переходим на [0.0.0.0:8000](http://0.0.0.0:8000) <br> <br>
+4. переходим на [0.0.0.0:8000](http://0.0.0.0:8000) <br> <br>
 ***чтобы остановить работу докера нажмите Ctrl+C***
 
 
