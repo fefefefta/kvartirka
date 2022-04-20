@@ -25,6 +25,7 @@ POSTGRES_PORT=5432
 ```
 3. запустите докер
 ```
+> cd ../../
 > docker build .
 > docker-compose build
 > docker-compose up
